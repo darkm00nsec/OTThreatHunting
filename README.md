@@ -402,6 +402,6 @@ This script is intended for defensive security, threat hunting, incident respons
 
 ---
 
-##Credit 
+## Credit 
 
-MrDuc as referenced in this article https://medium.com/@itpro677/hunting-threats-in-ot-environments-using-only-built-in-system-commands-no-tools-required-6adc80ef0ee2
+MrDuc in this article https://medium.com/@itpro677/hunting-threats-in-ot-environments-using-only-built-in-system-commands-no-tools-required-6adc80ef0ee2
