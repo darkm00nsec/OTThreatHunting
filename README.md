@@ -278,6 +278,10 @@ Some optional enhancements you may want to add later:
 └── LICENSE
 ```
 
+## Suggested reading
+
+https://medium.com/@itpro677/hunting-threats-in-ot-environments-using-only-built-in-system-commands-no-tools-required-6adc80ef0ee2
+
 ## Disclaimer
 
 This script is intended for defensive security, system administration, and authorized threat hunting purposes only. Use it only in environments where you have explicit permission.
