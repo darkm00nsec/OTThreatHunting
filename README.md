@@ -141,7 +141,7 @@ $HOME/threat_hunting_logs/<ComputerName>_YYYY-MM-DD/
 
 ### Example
 ```text
-C:\Users\hunter\ThreatHunting\WS01_2026-04-01\
+C:\Users\<userprofile>\ThreatHunting\WS01_2026-04-01\
 ├── all_network_connections.csv
 ├── established_connections.csv
 ├── listening_ports.csv
