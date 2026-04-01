@@ -281,3 +281,6 @@ Some optional enhancements you may want to add later:
 ## Disclaimer
 
 This script is intended for defensive security, system administration, and authorized threat hunting purposes only. Use it only in environments where you have explicit permission.
+
+## License
+MIT
