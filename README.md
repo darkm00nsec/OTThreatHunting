@@ -1,76 +1,131 @@
 # Threat Hunting Script
 
-A cross-platform PowerShell threat hunting script for **local** or **remote** collection of basic host artifacts on **Windows** and **Linux** systems.
+A cross-platform PowerShell threat hunting script for **Windows** and **Linux** that supports:
 
-This script can collect:
+- **Local execution**
+- **Remote execution**
+  - **WinRM** for Windows targets
+  - **SSH** where PowerShell remoting over SSH is configured
+- **CSV output for all functions**
+- **OT / ICS protocol port detection**
+- **Organized output folders by computer name and date**
 
-- Network connections
-- Listening ports
-- Processes and services
-- Scheduled tasks or cron jobs
-- User account information
-- Authentication or event log data
-- Network configuration details
+This script is intended for **authorized defensive security, threat hunting, and system administration** use.
 
-The script is designed to save output into organized folders by **host name** and **date**, making it easier to review results from multiple systems.
+---
 
 ## Features
 
-- Supports **local** execution
-- Supports **remote** execution
-- Works against **Windows** and **Linux** targets
-- Creates output folders automatically
-- Saves each hunt category into separate text files
-- Can run one category at a time or **run all checks**
+- Runs on **Windows** and **Linux**
+- Supports **local** and **remote** collection
+- Automatically creates output folders
+- Exports all results as **CSV**
+- Can run a **single hunt category** or **all checks**
+- Includes **OT protocol detection** for common ICS/OT ports
+- Adds a simple **Suspicious** flag for OT findings involving non-private remote addresses
 
-## Collected Artifacts
+---
 
-### Windows
-1. **Network Connections**
-   - Established connections
-   - Listening ports
+## Hunt Categories
 
-2. **Processes and Services**
-   - Verbose task list
-   - WMIC process details
-   - Running services
+### 1. Network Connections
+Collects network socket data and exports:
 
-3. **Scheduled Tasks**
-   - Full scheduled task listing
+- `established_connections.csv`
+- `listening_ports.csv`
+- `all_network_connections.csv`
 
-4. **User Accounts**
-   - Local users
-   - Local administrators group
+### 2. Processes and Services
+Collects:
 
-5. **Event Logs**
-   - Failed logon events (Event ID 4625)
+- Running processes
+- Running services
 
-6. **Network Configuration**
-   - `ipconfig /all`
-   - `arp -a`
+Exports:
 
-### Linux
-1. **Network Connections**
-   - Established connections
-   - Listening ports
+- `process_list.csv`
+- `services.csv`
 
-2. **Processes and Services**
-   - Process tree
-   - Running services
+### 3. Scheduled Tasks / Cron Jobs
+Collects:
 
-3. **Cron Jobs**
-   - Root crontab entries
+- **Windows:** Scheduled tasks
+- **Linux:** Root cron entries
 
-4. **User Accounts**
-   - `/etc/passwd`
-   - Active sessions
+Exports:
 
-5. **Logs**
-   - Failed SSH logon attempts from `journalctl`
+- **Windows:** `scheduled_tasks.csv`
+- **Linux:** `cron_jobs.csv`
 
-6. **Network Configuration**
-   - `ip addr`
-   - Neighbor/ARP table
+### 4. User Accounts
+Collects:
+
+- **Windows:** Local users and local administrators
+- **Linux:** `/etc/passwd` users and active sessions
+
+Exports:
+
+- **Windows:** `local_users.csv`, `local_admins.csv`
+- **Linux:** `all_users.csv`, `active_sessions.csv`
+
+### 5. Logs (Event Logs / Journal)
+Collects:
+
+- **Windows:** Failed logons from Security log (`Event ID 4625`) from the last 30 days
+- **Linux:** Failed SSH logon lines from `journalctl`
+
+Exports:
+
+- **Windows:** `event_failed_logons.csv`
+- **Linux:** `journal_failed_ssh_logons.csv`
+
+### 6. Network Configuration
+Collects:
+
+- **Windows:** IP configuration and ARP/neighbor data
+- **Linux:** Interface addressing and neighbor data
+
+Exports:
+
+- `network_adapter_config.csv`
+- `arp_table.csv`
+
+### 7. OT Protocol Port Matches
+Checks active/listening connections against a built-in OT protocol port reference list and exports:
+
+- `ot_protocol_reference_ports.csv`
+- `ot_protocol_matches.csv`
+
+### 8. RUN ALL CHECKS
+Runs every function above for the target host.
+
+---
+
+## Supported OT / ICS Protocols
+
+The script currently checks for these protocol ports:
+
+- Modbus/TCP
+- Siemens S7comm
+- EtherNet/IP
+- EtherNet/IP I/O
+- DNP3
+- OPC UA
+- BACnet/IP
+- PROFINET Context Management
+- PROFINET RT Discovery
+- PROFINET RT Control
+- IEC 60870-5-104
+- Tridium Fox
+- Niagara Fox SSL
+- OMRON FINS
+- MELSEC
+- IEC 61850 MMS
+- CODESYS Gateway
+
+> **Note:** This script performs **port-based OT detection**. It does **not** do deep packet inspection and will not detect non-port-based industrial traffic or confirm protocol content by payload.
+
+---
 
 ## Output Structure
 
@@ -84,54 +139,60 @@ C:\Users\<YourUser>\ThreatHunting\<ComputerName>_YYYY-MM-DD\
 $HOME/threat_hunting_logs/<ComputerName>_YYYY-MM-DD/
 ```
 
-Example:
-
+### Example
 ```text
 C:\Users\hunter\ThreatHunting\WS01_2026-04-01\
-├── established_connections.txt
-├── listening_ports.txt
-├── process_list_verbose.txt
-├── wmic_process_details.txt
-├── wmic_running_services.txt
-├── scheduled_tasks_all.txt
-├── local_users.txt
-├── local_admins.txt
-├── event_failed_logons.txt
-├── network_adapter_config.txt
-└── arp_table.txt
+├── all_network_connections.csv
+├── established_connections.csv
+├── listening_ports.csv
+├── process_list.csv
+├── services.csv
+├── scheduled_tasks.csv
+├── local_users.csv
+├── local_admins.csv
+├── event_failed_logons.csv
+├── network_adapter_config.csv
+├── arp_table.csv
+├── ot_protocol_reference_ports.csv
+└── ot_protocol_matches.csv
 ```
+
+Linux output will use the same date/host folder structure with Linux-specific CSV files such as `cron_jobs.csv`, `all_users.csv`, and `journal_failed_ssh_logons.csv`.
+
+---
 
 ## Requirements
 
-### Windows
-- PowerShell 5.1 or later
-- Appropriate permissions to run local commands
+## Windows
+- PowerShell **5.1 or later**
+- Appropriate privileges to collect host data
 - For remote execution with WinRM:
   - PowerShell remoting enabled
-  - Network access to target
+  - Network access to the target
   - Valid credentials
+- Some commands may require administrator rights
 
-### Linux
-- PowerShell 7+ for best compatibility
-- Utilities available on target system such as:
+## Linux
+- PowerShell **7+ recommended**
+- Utilities available on the target host, such as:
   - `ss`
-  - `grep`
-  - `ps`
-  - `systemctl`
-  - `crontab`
-  - `journalctl`
   - `ip`
+  - `systemctl`
+  - `journalctl`
+  - `who`
+  - `bash`
+  - `crontab`
 
-### Remote Execution Notes
+## Remote Execution
 - **WinRM** is used for standard PowerShell remoting to Windows systems
-- **SSH** can be used where PowerShell over SSH is configured
-- Remote collection requires valid access and appropriate privileges on the target host
+- **SSH** can be used where PowerShell remoting over SSH is configured
+- Remote collection requires valid credentials and appropriate access rights
+
+---
 
 ## Usage
 
-## Run the Script
-
-Start the script in PowerShell:
+Run the script in PowerShell:
 
 ```powershell
 .\ThreatHunting.ps1
@@ -139,10 +200,12 @@ Start the script in PowerShell:
 
 You will be prompted to choose:
 
-- **Local** or **Remote** execution
-- The hunt category to run
+- **Local** or **Remote**
+- A hunt category
 
-## Menu Options
+---
+
+## Interactive Menu
 
 ```text
 1. Network Connections
@@ -151,9 +214,12 @@ You will be prompted to choose:
 4. User Accounts
 5. Logs (Event Logs / Journal)
 6. Network Configuration
-7. RUN ALL CHECKS
+7. OT Protocol Port Matches
+8. RUN ALL CHECKS
 Q. Quit
 ```
+
+---
 
 ## Example: Local Execution
 
@@ -164,15 +230,17 @@ Q. Quit
 
 2. Choose:
    ```text
-   (L)ocal
+   L
    ```
 
 3. Choose:
    ```text
-   7
+   8
    ```
 
-This will run all checks on the local machine and save the results into the output folder.
+This runs all checks on the local machine and saves the CSV files to the output folder.
+
+---
 
 ## Example: Remote Execution with WinRM
 
@@ -183,10 +251,10 @@ This will run all checks on the local machine and save the results into the outp
 
 2. Choose:
    ```text
-   (R)emote
+   R
    ```
 
-3. Enter one or more hostnames or IPs:
+3. Enter target hosts:
    ```text
    Server1,192.168.1.50
    ```
@@ -198,76 +266,118 @@ This will run all checks on the local machine and save the results into the outp
    W
    ```
 
-6. Choose a hunt category or `7` for all checks
+6. Choose a menu option such as:
+   ```text
+   8
+   ```
+
+---
 
 ## Example: Remote Execution with SSH
 
 If PowerShell remoting over SSH is configured:
 
 1. Run the script
-2. Choose remote mode
-3. Enter target hostnames
-4. Supply credentials
+2. Choose `R`
+3. Enter target hosts
+4. Enter credentials
 5. Choose:
    ```text
    S
    ```
 
+---
+
+## CSV Output Notes
+
+All functions now write **CSV** files to make the output easier to:
+
+- ingest into SIEM platforms
+- load into spreadsheets
+- parse with PowerShell, Python, or Splunk/Elastic tooling
+- pivot and filter during DFIR or CTI workflows
+
+### Example OT CSV fields
+`ot_protocol_matches.csv` may include fields such as:
+
+- `Timestamp`
+- `Computer`
+- `Protocol`
+- `OTProtocol`
+- `Port`
+- `LocalAddress`
+- `LocalPort`
+- `RemoteAddress`
+- `RemotePort`
+- `RemoteScope`
+- `State`
+- `PID`
+- `ProcessName`
+- `Suspicious`
+
+### Suspicious flag
+For OT findings, the script adds a basic `Suspicious` field:
+
+- `YES` when the remote address appears to be **public or non-private**
+- `NO` when the remote address appears to be **private, loopback, or expected internal scope**
+
+This is only a simple heuristic and should not be treated as a final determination of malicious activity.
+
+---
+
 ## What the Script Does
 
 At runtime, the script:
 
-1. Detects whether the target system is Windows or Linux
-2. Creates the base log folder if it does not already exist
-3. Creates a subfolder using:
-   - Computer name
-   - Current date
-4. Runs the selected hunt commands
-5. Writes each command's output to a separate text file
+1. Detects the target operating system
+2. Creates the base output directory if needed
+3. Creates a subfolder based on:
+   - host name
+   - current date
+4. Runs the selected hunt category
+5. Exports the results to one or more CSV files
+6. Returns the output path for the run
+
+---
 
 ## Error Handling
 
 The script includes basic error handling:
 
-- Creates folders with `-Force`
-- Writes command failures into output files where possible
-- Displays execution errors in the console
+- Auto-creates folders with `-Force`
+- Writes a placeholder CSV row when no results are found
+- Displays console errors during execution
+- Uses `SilentlyContinue` for some commands to avoid full script failure
 
-If a command fails, review:
+If a function fails, check:
 
-- Your privileges
-- Remote connectivity
-- Whether the required utility exists on the target system
-- Whether the target supports the selected remoting method
+- permissions
+- remote connectivity
+- PowerShell version
+- module availability
+- whether required Linux utilities are installed
+
+---
 
 ## Security Considerations
 
-- Run only on systems you are authorized to assess
-- Remote execution requires credentials and access rights
-- Output may contain sensitive host and user data
-- Review and protect collected artifacts appropriately
-- Consider encrypting or securely storing hunt results
+- Use only on systems you are authorized to assess
+- Collected output may contain sensitive host, user, service, and network data
+- Protect the generated CSV files appropriately
+- Use encrypted storage or transfer where appropriate
+- Review OT findings carefully before taking action in production environments
 
-## Recommended Improvements
-
-Some optional enhancements you may want to add later:
-
-- Parameterized non-interactive mode
-- CSV or JSON output
-- Transcript logging
-- Compression of collected artifacts
-- Hashing of result files
-- Additional Windows event collection
-- Additional Linux log collection
-- IOC matching or enrichment
-- Centralized collection to a share or S3-compatible bucket
+---
 
 ## Known Considerations
 
-- `wmic` is deprecated on some modern Windows systems, though it may still work
-- Linux log collection assumes `sshd.service` and `journalctl` are present
-- SSH remoting may need adjustment depending on your PowerShell and SSH configuration
-- Some commands require elevated privileges to return full results
+- `Get-LocalUser`, `Get-LocalGroupMember`, `Get-ScheduledTask`, and some network-related commands may require administrative privileges on Windows
+- Linux service and log collection depend on `systemd` / `journalctl`
+- SSH remoting depends on the environment being configured correctly
+- OT detection is **port-based** only
+- Some Linux outputs are parsed from shell command output and may vary slightly by distribution
+
+---
 
 ## Suggested Repository Layout
 
@@ -278,13 +388,20 @@ Some optional enhancements you may want to add later:
 └── LICENSE
 ```
 
-## Suggested reading
+---
 
-https://medium.com/@itpro677/hunting-threats-in-ot-environments-using-only-built-in-system-commands-no-tools-required-6adc80ef0ee2
+## License
+
+- MIT
+
+---
 
 ## Disclaimer
 
-This script is intended for defensive security, system administration, and authorized threat hunting purposes only. Use it only in environments where you have explicit permission.
+This script is intended for defensive security, threat hunting, incident response support, and authorized administrative use only. Do not use it on systems or networks without explicit permission.
 
-## License
-MIT
+---
+
+##Credit 
+
+MrDuc as referenced in this article https://medium.com/@itpro677/hunting-threats-in-ot-environments-using-only-built-in-system-commands-no-tools-required-6adc80ef0ee2
